@@ -1,21 +1,57 @@
 ---
+title: Unikix Connector
+description: "Landing page for the SMA Unikix Connector documentation, with links to overview, release notes, installation, and operation topics."
 slug: '/'
 sidebar_label: 'Unikix Connector'
+hide_table_of_contents: true
+displayed_sidebar: null
+tags:
+  - Reference
+  - System Administrator
+  - Getting Started
 ---
 
-# SMA Unikix Connector
+# Unikix Connector
 
-Unikix BPE (Batch Processing Environment) is a Mainframe rehosting solution by Clerity Solutions (now Dell) that “provides a complete environment for the administration, execution, and management of batch workloads on open systems servers” (source ClerityWhitePaper Rehosting Mainframe Workloads).
+The SMA OpCon Unikix Connector integrates OpCon with Unikix BPE (Batch Processing Environment) so OpCon can submit JCL jobs to Unikix and manage their return codes.
 
-The SMA OpCon Unikix Connector implements the interaction between OpCon and some Unikix components to allow:
--	the Job submission on Unikix BPE 
--	the return code management 
+<div style={{display: 'flex', gap: '0.75rem', alignItems: 'flex-start', flexWrap: 'wrap', marginTop: '1rem'}}>
 
-The SMA OpCon Unikix Connector contains additional capability, dedicated to some specific customer needs that allows to:
--	JCL master/daily repository management
--	pre-process of the JCL file to be executed by Unikix BPE (with JCL tailoring capability)
--	step discovery and management (restart on step from EM)
+<div style={{flex: '1', minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '0.6rem'}}>
 
-The connector is written in Java. It is delivered as a stand-alone JAR file.
+<div style={{background: 'var(--ifm-card-background-color)', border: '1px solid var(--ifm-color-emphasis-400)', borderRadius: '10px', padding: '0.75rem 1rem'}}>
 
----
+### Overview
+
+- [Overview](./overview.md)
+- [Release Notes](./release-notes.md)
+
+</div>
+
+</div>
+
+<div style={{flex: '1', minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '0.6rem'}}>
+
+<div style={{background: 'var(--ifm-card-background-color)', border: '1px solid var(--ifm-color-emphasis-400)', borderRadius: '10px', padding: '0.75rem 1rem'}}>
+
+### Installation
+
+- [Installation](./installation.md)
+
+</div>
+
+</div>
+
+<div style={{flex: '1', minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '0.6rem'}}>
+
+<div style={{background: 'var(--ifm-card-background-color)', border: '1px solid var(--ifm-color-emphasis-400)', borderRadius: '10px', padding: '0.75rem 1rem'}}>
+
+### Operation
+
+- [Operation](./operation.md)
+
+</div>
+
+</div>
+
+</div>
