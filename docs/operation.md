@@ -38,7 +38,7 @@ When OpCon submits a job to the connector, the connector runs the following phas
 The Unikix server holds the source JCL files in a folder that acts as the master repository. Each day, an OpCon job that is set up separately copies all of the JCL files from the master repository to a daily repository.
 
 :::note Daily repository naming
-The name of the daily repository ends with `_YY_MM_DD`, where `YY_MM_DD` is the date of the run.
+The name of the daily repository is the `DAILY_DIR` value followed by an underscore and the run date in `yy-MM-dd` form. With `DAILY_DIR=daily`, a run on September 21, 2026 uses `daily_26-09-21`. The date passed with `-d` is used exactly as given, so it must be in the same form.
 :::
 
 This pattern allows daily changes to the source JCL without affecting the master repository. When a job runs, the JCL file is copied into the directory used for submission, pre-processed, and then run on Unikix BPE.
@@ -54,17 +54,18 @@ The following sections describe each phase of the connector workflow in detail. 
 The connector is invoked with the following command line:
 
 ```bash
-unikix_connector.jar jobname -c <arg> [-d <arg>] [-j <arg>] [-R <arg>]
+unikix_connector.jar jobname [sma_restart=<step>] -c <arg> [-d <arg>] [-j <arg>] [-R <arg>]
 ```
 
-The job name is also the name of the JCL file to be run.
+The job name is also the name of the JCL file to be run. It must come first. The connector accepts at most one further value of this kind, and that value must begin with `sma_restart=`.
 
 | Argument | Required | Description |
 |---|---|---|
 | `-c, --class <arg>` | Yes | Class of the job. Allowed values: `a`, `b`, `c`, `f`, `i`, `t`. |
-| `-d, --date <arg>` | No | Date in `yy-mm-dd` format. Defaults to today. |
+| `-d, --date <arg>` | No | Date in `yy-MM-dd` format. Defaults to today. |
 | `-j, --jid <arg>` | No | JID number used to select sections of the JCL file. |
-| `-R, --restart-step <arg>` | No | Starting step of the job. |
+| `-R, --restart-step <arg>` | No | Starting step of the job. Ignored when `sma_restart=` is present. |
+| `sma_restart=<step>` | No | Not an option but a second value after the job name. OpCon adds it automatically for a **Restart on Step** request. Takes precedence over `-R`. |
 
 :::caution Class names are case sensitive
 Use the lowercase letters `a`, `b`, `c`, `f`, `i`, or `t` for the `-c` argument. The connector rejects any other class name.
@@ -74,8 +75,14 @@ Use the lowercase letters `a`, `b`, `c`, `f`, `i`, or `t` for the `-c` argument.
 
 A job can be restarted on a specific step in two ways:
 
-- Use the OpCon **Restart on Step** action available in Enterprise Manager on a job that has already run at least once in the daily.
+- Use the OpCon **Restart on Step** action available in Enterprise Manager on a job that has already run at least once in the daily. OpCon adds `sma_restart=<step>` to the command line for you.
 - Pass the `-R` option with the step name on the connector command line.
+
+:::caution The two routes are not interchangeable
+
+When `sma_restart=` is present, **`-R` is ignored without a warning**. A job definition that carries a permanent `-R` therefore has no effect on an Enterprise Manager restart, which will use the step selected in Enterprise Manager instead. The connector log records which route was taken.
+
+:::
 
 ### 2. Read the property file
 
@@ -85,16 +92,24 @@ For the parameter descriptions and an example, see [Installation](./installation
 
 ### 3. Pre-process and tailor the JCL
 
-The connector reads the JCL file from `DAILY_DIR` and copies it into `EXEC_DIR`. Depending on the JID number, some sections of the file can be omitted.
+The connector reads the JCL file from `DAILY_DIR` and writes the tailored copy into `EXEC_DIR`. Depending on the JID number, some sections of the file can be omitted.
+
+The tailored file does not keep the original name. It takes the JCL file name padded with random characters to 14 characters — so `PDRIC600` becomes something like `PDRIC600a9_Q2x` — and that name is what appears in the `unikixjob` command and in the Unikix log. The tailored file is deleted when the job returns 0 and left in place when it does not, so a failed job leaves its tailored JCL in `EXEC_DIR` for examination.
 
 JID-specific sections are marked with the following statements:
 
 | Statement | Meaning |
 |---|---|
 | `#JI,ID=1` | Beginning of a section for `JID = 1`. |
-| `#JI,JEND` | End of a JID-specific section. |
+| `#JEND` | End of a JID-specific section. |
 
 When the JID number matches, the lines between the markers are written to the output file. The `#JI` and `#JEND` statements are removed from the output.
+
+:::caution Terminate every JID section with `#JEND`
+
+`#JEND` is what re-enables output after a section that did not match. If a section is left unterminated, every remaining line in the file is dropped — including `ENDJOB` — and the tailored JCL is incomplete rather than merely reduced.
+
+:::
 
 #### Supported `#JI` syntax
 
@@ -120,7 +135,7 @@ echo "SCHID 1" >> /tmp/OPCON_test.log
 EBMSYSCMD << !
 echo "SCHID 2" >> /tmp/ OPCON_test.log
 !
-#JI,JEND
+#JEND
 ENDJOB
 ```
 
@@ -222,15 +237,21 @@ After the JCL file is tailored, copied into `EXEC_DIR`, and the steps have been 
 The Unikix command used to start the job is:
 
 ```bash
-unikixjob jobname -c class -w -j -R stepname
+cd <WORKSPACE> && unikixjob <tailored file> -c <class> -w -j
+```
+
+When a restart step was requested, ` -R <stepname>` is appended:
+
+```bash
+cd <WORKSPACE> && unikixjob <tailored file> -c <class> -w -j -R <stepname>
 ```
 
 | Argument | Description |
 |---|---|
-| `-c class` | Class of the job. |
+| `-c <class>` | Class of the job. |
 | `-w` | Waits for the job to complete before returning. |
 | `-j` | Directs the job number to standard output so the connector can read it. |
-| `-R stepname` | Restarts the job at the specified step. |
+| `-R <stepname>` | Restarts the job at the specified step. Present only when a restart step was requested. |
 
 The Unikix job number is captured from standard output of the `unikixjob` command. The connector matches the following regular expression to find the job number:
 
@@ -256,7 +277,13 @@ The connector return code tells OpCon whether the Unikix job succeeded.
 | Connector return code | Meaning |
 |---|---|
 | `0` | `unikixjob` returned 0. The job succeeded. |
+| `1` | An unexpected error. The connector writes the exception detail to the log. |
+| `2` | The command line could not be parsed — an invalid or missing class, a missing job name, or too many values. The usage text is written to the log. |
+| `3` | A required parameter is missing from the configuration file. The message names which of `WORKSPACE`, `DAILY_DIR`, `EXEC_DIR`, and `PROC_DIR` were not found. |
+| `4` | The daily directory or the JCL file inside it does not exist. Check the daily repository name against [Daily repository naming](#jcl-master-and-daily-repository-management). |
 | `10` | `unikixjob` did not return 0. The connector also writes the name of the failed step to standard output. |
+
+Codes `2`, `3`, and `4` mean the job never reached Unikix BPE. Code `10` means it ran and failed.
 
 #### Identifying the failed step
 
@@ -301,7 +328,7 @@ Use the OpCon **Restart on Step** action in Enterprise Manager for a job that ha
 
 ### What return codes does the connector send to OpCon?
 
-The connector returns `0` when the underlying `unikixjob` command returns 0, and `10` when it does not. When the connector returns 10, it writes the name of the failed step to standard output.
+The connector returns `0` when the underlying `unikixjob` command returns 0, and `10` when it does not — writing the name of the failed step to standard output. It also returns `2` for a command line it cannot parse, `3` for a missing required parameter, `4` when the daily directory or JCL file is not found, and `1` for an unexpected error. Codes `2`, `3`, and `4` mean the job never reached Unikix BPE.
 
 ## Glossary
 
@@ -313,7 +340,7 @@ The connector returns `0` when the underlying `unikixjob` command returns 0, and
 | JID | Also called SCHID. An integer that determines which sections of the JCL file are run. |
 | Procedure | A program run by a JCL file in Unikix. |
 | Master repository | The folder on the Unikix server that holds the source JCL files. |
-| Daily repository | A dated copy of the master repository that the connector uses for the day's runs. The folder name ends with `_YY_MM_DD`. |
+| Daily repository | A dated copy of the master repository that the connector uses for the day's runs. The folder name is the `DAILY_DIR` value followed by an underscore and the run date in `yy-MM-dd` form — for example `daily_26-09-21`. |
 
 **Related topics:**
 

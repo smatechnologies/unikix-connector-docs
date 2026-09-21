@@ -54,7 +54,7 @@ The connector reads its configuration from an INI file in the same directory as 
 | [Unikix log directory](#unikix-log-directory) | Location of the Unikix BPE job log files. |
 | [Unikix history directory](#unikix-history-directory) | Locations where the connector archives job log files by class. |
 | [Language](#language) | Output language for connector log messages. |
-| [Logger](#logger) | Connector log level and log file behavior. |
+| [Logger](#logger) | Two parameters that appear in the file but have no effect. |
 
 :::tip File name and location
 The INI file is named `unikix_connector.properties`. Place it in the same directory as the connector JAR file.
@@ -66,12 +66,14 @@ The workspace section defines where the connector reads daily JCL files, where i
 
 `DAILY_DIR`, `EXEC_DIR`, and `PROC_DIR` are relative to `WORKSPACE`. For example, if `WORKSPACE` is `/appl/unikix` and `DAILY_DIR` is `daily`, the daily JCL scripts are located in `/appl/unikix/daily`.
 
-| Parameter | Meaning | Default value |
-|---|---|---|
-| `WORKSPACE` | Workspace directory. All other folders are relative to this one. | - |
-| `DAILY_DIR` | Directory where the daily JCL scripts are located. | - |
-| `EXEC_DIR` | Directory where the daily JCL files are copied so they can be run. | - |
-| `PROC_DIR` | Directory where the procedures called from the JCL files are located. | - |
+All four parameters in this section are required. If any is missing, the connector reports which ones and stops before running the job.
+
+| Parameter | Meaning | Required | Default value |
+|---|---|---|---|
+| `WORKSPACE` | Workspace directory. All other folders are relative to this one. | Yes | - |
+| `DAILY_DIR` | Directory where the daily JCL scripts are located. | Yes | - |
+| `EXEC_DIR` | Directory where the daily JCL files are copied so they can be run. | Yes | - |
+| `PROC_DIR` | Directory where the procedures called from the JCL files are located. | Yes | - |
 
 ### Unikix log directory
 
@@ -97,6 +99,10 @@ The class subdirectories are relative to `HISTORY_DIR`. For example, if `HISTORY
 | `CLASSE_I` | Log directory for class I jobs. | - |
 | `CLASSE_T` | Log directory for class T jobs. | - |
 
+:::note
+The connector looks up the entry for a job's class in upper case, so a job run with `-c a` reads `CLASSE_A`. A job whose class has no matching entry in the file is rejected.
+:::
+
 ### Language
 
 The connector can output log messages in English or in Italian.
@@ -111,12 +117,13 @@ Most log messages are not translated into Italian. Debug messages are not transl
 
 ### Logger
 
-The logger section controls the verbosity of the connector log and whether the connector writes a dedicated log file.
+:::caution These two parameters have no effect
 
-| Parameter | Meaning | Default value |
-|---|---|---|
-| `LOG_LEVEL` | Level of the log messages. | `debug` |
-| `LOG_FILE` | If `true`, write a file called `unikix_connector.log`. | `true` |
+`LOG_LEVEL` and `LOG_FILE` appear in the shipped configuration file, but the connector does not read either of them. Changing them does not change the log level, and the connector does not write a file named `unikix_connector.log`. Logging behavior is fixed by the logging configuration bundled inside the connector JAR.
+
+Leave both as they are. They are documented here only so that their presence in the file is not mistaken for a working setting.
+
+:::
 
 ## Example INI file
 
@@ -141,10 +148,6 @@ CLASSE_F=histF
 CLASSE_I=histD
 CLASSE_T=histE
 
-# logging options
-LOG_LEVEL=debug
-LOG_FILE=true
-
 # language
 LANG=en
 ```
@@ -159,13 +162,13 @@ The INI file is named `unikix_connector.properties` and must be placed in the sa
 
 `DAILY_DIR`, `EXEC_DIR`, and `PROC_DIR` are relative to `WORKSPACE`. The class subdirectories (`CLASSE_A` through `CLASSE_T`) are relative to `HISTORY_DIR`.
 
-### Which logging level should I use?
+### Can I change the connector's logging level?
 
-The default is `debug`. Adjust it based on the volume of detail you need in the connector log.
+Not through the configuration file. The `LOG_LEVEL` and `LOG_FILE` parameters in that file are not read by the connector, and logging behavior is fixed by the configuration bundled inside the JAR.
 
-### Where are the connector log files written?
+### Where are the Unikix job log files written?
 
-When `LOG_FILE` is `true`, the connector writes a file named `unikix_connector.log` alongside the JAR file. Job-specific Unikix log files are written by Unikix BPE to `UNIKIX_LOG_DIR` and are then moved by the connector into the matching class subdirectory under `HISTORY_DIR`.
+Unikix BPE writes them to `UNIKIX_LOG_DIR`. After each job the connector moves the matching file into the subdirectory for the job's class under `HISTORY_DIR`.
 
 ## Glossary
 
@@ -174,7 +177,7 @@ When `LOG_FILE` is `true`, the connector writes a file named `unikix_connector.l
 | Unikix BPE | The Batch Processing Environment within the Unikix solution that runs JCL files. |
 | Class | Also called Unikix activity class. Identifies the class of a Unikix job. The connector accepts only `a`, `b`, `c`, `f`, `i`, and `t`. Class names are case sensitive. |
 | Master repository | The folder on the Unikix server that holds the source JCL files. |
-| Daily repository | A dated copy of the master repository that the connector uses for the day's runs. The folder name ends with `_YY_MM_DD`. |
+| Daily repository | A dated copy of the master repository that the connector uses for the day's runs. The folder name is the `DAILY_DIR` value followed by an underscore and the run date in `yy-MM-dd` form — for example `daily_26-09-21`. |
 | INI file | The connector's configuration file (`unikix_connector.properties`), placed alongside the JAR. |
 
 **Related topics:**

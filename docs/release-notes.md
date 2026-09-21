@@ -20,13 +20,11 @@ tags:
 
 :eight_spoked_asterisk: Adopted a new installer format. Files are now extracted from the zip file into the desired directory.
 
-:eight_spoked_asterisk: The configuration file has been renamed from `Agent.config` to `Connector.config`.
-
 ### Migration considerations
 
 The connector has been compiled with Java 1.8. An appropriate OpenJDK 1.8 distribution must be installed on the target Unix or Linux system before upgrading.
 
-The configuration file has been renamed from `Agent.config` to `Connector.config`. Carry over your existing settings to the new file before starting the connector.
+The connector reads its configuration from `unikix_connector.properties`, placed in the same directory as the JAR file. Carry over your existing settings before starting the connector.
 
 ### Bug fixes
 
