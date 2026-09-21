@@ -17,7 +17,7 @@ The SMA OpCon Unikix Connector integrates OpCon with Unikix BPE (Batch Processin
 
 The SMA OpCon Unikix Connector is a Java-based connector delivered as a stand-alone JAR file. It runs on the same Unix or Linux system as Unikix BPE and acts as the bridge between OpCon and Unikix components.
 
-Unikix BPE (Batch Processing Environment) is a mainframe rehosting solution by Clerity Solutions (now Dell) that provides an environment for the administration, execution, and management of batch workloads on open systems servers (source: ClerityWhitePaper Rehosting Mainframe Workloads).
+Unikix BPE (Batch Processing Environment) is a mainframe rehosting solution by Clerity Solutions (now Dell) that provides an environment for the administration, execution, and management of batch workloads on open systems servers.
 
 The connector implements the interaction between OpCon and Unikix components to support:
 
@@ -48,7 +48,7 @@ For details on configuring the connector and the INI file, see [Installation](./
 | JID | Also called SCHID. An integer that determines which sections of the JCL file are run. |
 | Procedure | A program run by a JCL file in Unikix. |
 | JCL master repository | The folder on the Unikix server that holds the source JCL files. |
-| JCL daily repository | A dated copy of the master repository that the connector uses for the day's runs. The folder name ends with `_YY_MM_DD`. |
+| JCL daily repository | A dated copy of the master repository that the connector uses for the day's runs. The folder name is the `DAILY_DIR` value followed by an underscore and the run date in `yy-MM-dd` form — for example `daily_26-09-21`. |
 
 ## FAQs
 
